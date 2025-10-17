@@ -11,8 +11,25 @@ class StudentController extends Controller
 {
     public function index()
     {
+        // This loads the students list page (uses AJAX to fetch data)
+        return view('student-list');
+    }
+
+    public function show($id)
+    {
+        $student = Student::with('results')->findOrFail($id);
+        return view('student', compact('student'));
+    }
+
+    public function getStudents()
+    {
+        // Fetch students with results (so marks show in AJAX)
         $students = Student::with('results')->get();
-        return view('student', compact('students'));
+
+        return response()->json([
+            'success' => true,
+            'students' => $students
+        ]);
     }
 
     public function add()
@@ -38,7 +55,7 @@ class StudentController extends Controller
         $student = DB::table('students')->insert($data);
         if($student) {
             // Student created successfully
-            return redirect()->route('add.student')->with('success', 'Student added successfully.');
+            return redirect()->route('get-student')->with('success', 'Student added successfully.');
         }
 
     }
@@ -79,6 +96,23 @@ class StudentController extends Controller
             'success' => true,
             'message' => 'Student updated successfully!',
             'image' => isset($data['image']) ? asset('storage/' . $data['image']) : null
+        ]);
+    }
+
+    public function destroy($id)
+    {
+        $student = Student::findOrFail($id);
+
+        // Delete the student's image if it exists
+        if ($student->image && Storage::disk('public')->exists($student->image)) {
+            Storage::disk('public')->delete($student->image);
+        }
+
+        $student->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Student deleted successfully!'
         ]);
     }
 
